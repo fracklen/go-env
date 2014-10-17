@@ -1,6 +1,6 @@
 # go-env
 
-Runs a command with enviroment gotten from etcd.
+Runs a command with environment gotten from [etcd](https://github.com/coreos/etcd).
 
 ## Usage
 
@@ -10,8 +10,8 @@ To start a new bash with environment from etcd use:
 ETCD_URL=http://127.0.0.1:4001 ETCD_ENV=appname go-env bash
 ```
 
-It'll read environment variables from both "/environment" and "/appname/enviornment" directories.
-"/appname/enviornment" takes precedense.
+It'll read environment variables from both `"/environment"` and `"/appname/environment"` directories.
+`"/appname/environment"` takes precedense.
 
 
 ## License

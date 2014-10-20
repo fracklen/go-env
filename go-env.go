@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/coreos/go-etcd/etcd"
 	"os"
@@ -9,14 +10,27 @@ import (
 )
 
 var (
-	etcdURL    = ""
-	etcdEnv    = ""
+	etcdURL = ""
+	etcdEnv = ""
+	debug   = flag.Bool("debug", false, "Debug flag")
+
 	etcdClient = etcd.Client{}
 )
 
 func init() {
-	etcdURL = os.Getenv("ETCD_URL")
-	etcdEnv = os.Getenv("ETCD_ENV")
+	flag.StringVar(&etcdURL, "etcdurl", "", "URL for etcd, e.g. http://192.168.59.103:4001")
+	flag.StringVar(&etcdEnv, "etcdenv", "", "Name of the etcdEnv")
+
+	flag.Parse()
+
+	if etcdURL == "" {
+		etcdURL = os.Getenv("ETCD_URL")
+	}
+
+	if etcdEnv == "" {
+		etcdEnv = os.Getenv("ETCD_ENV")
+	}
+
 	etcdClient = *etcd.NewClient([]string{etcdURL})
 }
 
@@ -38,14 +52,14 @@ func run(env []string) error {
 		osEnv = append(osEnv, e)
 	}
 
-	vars := os.Args
+	vars := flag.Args()
 	var args = make([]string, 0)
 
-	if len(vars) > 2 {
-		args = vars[2:len(vars)]
+	if len(vars) > 1 {
+		args = vars[1:len(vars)]
 	}
 
-	cmd := exec.Command(vars[1], args...)
+	cmd := exec.Command(vars[0], args...)
 	cmd.Env = osEnv
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 	err := cmd.Run()
@@ -80,7 +94,9 @@ func readDir(etcdClient *etcd.Client, directory string) map[string]string {
 	response, err := etcdClient.Get(directory, false, false)
 
 	if err != nil {
-		fmt.Printf("No %s directory found\n", directory)
+		if *debug {
+			fmt.Printf("No %s directory found\n", directory)
+		}
 		return result
 	}
 

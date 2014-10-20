@@ -35,10 +35,20 @@ func init() {
 }
 
 func main() {
-	m1 := readDir(&etcdClient, "/environment")
-	m2 := readDir(&etcdClient, fmt.Sprintf("/%s/environment", etcdEnv))
+	m1, err1 := readDir(&etcdClient, "/environment")
+	m2, err2 := readDir(&etcdClient, fmt.Sprintf("/%s/environment", etcdEnv))
 
-	err := run(arraify(merge(m1, m2)))
+	env := make(map[string]string)
+
+	if err1 == nil {
+		env = m1
+	}
+
+	if err2 == nil {
+		env = merge(env, m2)
+	}
+
+	err := run(arrayify(env))
 	if err != nil {
 		// TODO: Figure out the correct exit code
 		os.Exit(1)
@@ -72,7 +82,7 @@ func run(env []string) error {
 	return nil
 }
 
-func arraify(m map[string]string) []string {
+func arrayify(m map[string]string) []string {
 	var result = make([]string, 0)
 	for key, value := range m {
 		result = append(result, fmt.Sprintf("%s=%s", key, value))
@@ -88,17 +98,17 @@ func merge(first, second map[string]string) map[string]string {
 	return result
 }
 
-func readDir(etcdClient *etcd.Client, directory string) map[string]string {
-	result := make(map[string]string)
-
+func readDir(etcdClient *etcd.Client, directory string) (map[string]string, error) {
 	response, err := etcdClient.Get(directory, false, false)
 
 	if err != nil {
 		if *debug {
 			fmt.Printf("No %s directory found\n", directory)
 		}
-		return result
+		return nil, err
 	}
+
+	result := make(map[string]string)
 
 	for _, node := range response.Node.Nodes {
 		var path = strings.SplitAfter((*node).Key, "/")
@@ -108,5 +118,5 @@ func readDir(etcdClient *etcd.Client, directory string) map[string]string {
 		result[key] = value
 	}
 
-	return result
+	return result, nil
 }
